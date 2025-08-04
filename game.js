@@ -241,22 +241,24 @@ document.addEventListener('DOMContentLoaded', () => {
         }, 4000);
         
         // 播放成就音效
-        playEncouragementSound();
+        playEncouragementSound(true);
     }
 
     // 🔊 播放鼓励音效
-    function playEncouragementSound() {
+    function playEncouragementSound(showMessage = false) {
         if (parentalControls.soundEnabled && parentalControls.encouragementEnabled) {
             // 可以播放鼓励音效
-            const msg = encouragementMessages[Math.floor(Math.random() * encouragementMessages.length)];
-            showEncouragementMessage(msg);
+            if (showMessage) {
+                const msg = encouragementMessages[Math.floor(Math.random() * encouragementMessages.length)];
+                showEncouragementMessage(msg);
+            }
         }
     }
 
     // 💬 显示鼓励消息
     function showEncouragementMessage(message) {
         const msgDiv = document.createElement('div');
-        msgDiv.className = 'fixed top-1/3 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-gradient-to-r from-pink-400 to-purple-500 text-white px-6 py-3 rounded-full text-xl font-bold shadow-lg z-50 animate-bounce';
+        msgDiv.className = 'fixed top-4 left-1/2 transform -translate-x-1/2 bg-gradient-to-r from-pink-400 to-purple-500 text-white px-6 py-3 rounded-full text-xl font-bold shadow-lg z-50 animate-bounce bg-opacity-90';
         msgDiv.textContent = message;
         
         document.body.appendChild(msgDiv);
@@ -1681,15 +1683,18 @@ document.addEventListener('DOMContentLoaded', () => {
         const skipBtn = dialog.querySelector('#skipQuestion');
         
         function cleanup() {
+            console.log('清理数学题对话框');
             dialog.style.opacity = '0';
             setTimeout(() => {
                 if (dialog.parentNode) {
                     document.body.removeChild(dialog);
+                    console.log('数学题对话框已移除');
                 }
             }, 300);
         }
         
         function handleMathResult(isCorrect, isSkipped = false) {
+            console.log('数学题结果处理:', { isCorrect, isSkipped, currentMathFood });
             cleanup();
             
             if (currentMathFood) {
@@ -1719,6 +1724,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
             
             // 恢复游戏
+            console.log('恢复游戏状态, isGameActive设置为true');
             isGameActive = true;
             if (gameInterval) clearInterval(gameInterval);
             gameInterval = setInterval(gameLoop, gameSpeed);
