@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>双人贪吃蛇对战 - 宽屏版</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        player1: '#4F46E5',
+                        player2: '#EC4899',
+                        dark: '#1F2937',
+                        light: '#F9FAFB'
+                    },
+                    fontFamily: {
+                        game: ['Poppins', 'sans-serif'],
+                    },
+                }
+            }
+        }
+    </script>
+    <style type="text/tailwindcss">
+        @layer utilities {
+            .content-auto {
+                content-visibility: auto;
+            }
+            .grid-bg {
+                background-size: 20px 20px;
+                background-image: 
+                    linear-gradient(to right, rgba(255,255,255,0.05) 1px, transparent 1px),
+                    linear-gradient(to bottom, rgba(255,255,255,0.05) 1px, transparent 1px);
+            }
+            .text-shadow {
+                text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+            }
+            .player1-gradient { background: linear-gradient(90deg, #4F46E5, #6366F1); }
+            .player2-gradient { background: linear-gradient(90deg, #EC4899, #F472B6); }
+            .confetti {
+                position: absolute;
+                width: 10px;
+                height: 10px;
+                opacity: 0;
+            }
+        }
+    </style>
+</head>
+<body class="bg-dark font-game text-light min-h-screen p-0 m-0 overflow-x-hidden">
+    <audio id="deathSound" preload="auto">
+        <source src="death.wav" type="audio/wav">
+     </audio>
+    <div class="w-full flex flex-col h-screen">
+        <header class="py-4 px-6 text-center bg-dark/80 backdrop-blur-sm border-b border-white/10 relative">
+            <h1 class="text-[clamp(1.5rem,4vw,2.5rem)] font-bold text-transparent bg-clip-text bg-gradient-to-r from-player1 to-player2 text-shadow">🐲 儿童贪吃蛇大冒险 🌈</h1>
+            <p class="text-white/70 mt-1">🎮 小火龙: WASD控制 | 彩虹蛇: 方向键控制 🎮</p>
+            
+            <!-- 家长控制按钮 -->
+            <button id="parentalControlsBtn" class="absolute top-4 right-4 bg-gradient-to-r from-amber-500 to-orange-500 text-white px-4 py-2 rounded-full text-sm font-bold shadow-lg hover:shadow-amber-500/30 hover:scale-105 transition-all duration-300">
+                👨‍👩‍👧‍👦 家长设置
+            </button>
+            
+            <!-- 成就按钮 -->
+            <button id="achievementsBtn" class="absolute top-4 left-4 bg-gradient-to-r from-yellow-500 to-yellow-600 text-white px-4 py-2 rounded-full text-sm font-bold shadow-lg hover:shadow-yellow-500/30 hover:scale-105 transition-all duration-300">
+                🏆 成就
+            </button>
+        </header>
+        
+        <!-- 玩家信息和分数 -->
+        <div class="flex justify-between px-6 py-3 bg-dark/60 backdrop-blur-sm border-b border-white/10">
+            <div class="flex items-center">
+                <div class="w-4 h-4 rounded-full bg-player1 mr-2"></div>
+                <input type="text" id="player1Name" value="玩家1" 
+                    class="bg-dark/50 border border-player1/50 rounded px-3 py-2 text-sm mr-4 focus:outline-none focus:ring-2 focus:ring-player1/70 transition-all w-32">
+                <div class="bg-player1/20 px-3 py-1 rounded text-player1 font-bold mr-4">
+                    分数: <span id="score1" class="ml-1">0</span>
+                </div>
+                <div class="bg-player1/20 px-3 py-1 rounded text-player1 font-bold">
+                    生命: <span id="lives1" class="ml-1">3</span>
+                </div>
+            </div>
+            
+            <div class="flex items-center">
+                <div class="bg-player2/20 px-3 py-1 rounded text-player2 font-bold mr-4">
+                    分数: <span id="score2" class="ml-1">0</span>
+                </div>
+                <div class="bg-player2/20 px-3 py-1 rounded text-player2 font-bold">
+                    生命: <span id="lives2" class="ml-1">3</span>
+                </div>
+                <input type="text" id="player2Name" value="玩家2" 
+                    class="bg-dark/50 border border-player2/50 rounded px-3 py-2 text-sm ml-4 focus:outline-none focus:ring-2 focus:ring-player2/70 transition-all w-32">
+                <div class="w-4 h-4 rounded-full bg-player2 ml-2"></div>
+            </div>
+        </div>
+        
+        <!-- 游戏区域 - 横向宽屏设计 -->
+        <div class="flex-1 relative overflow-hidden">
+            <canvas id="gameCanvas" class="w-full h-full grid-bg"></canvas>
+
+            <!-- 确认窗口已移除 -->
+
+            <!-- 模式选择界面 -->
+            <div id="modeScreen" class="absolute inset-0 bg-dark/90 backdrop-blur-sm flex flex-col items-center justify-center z-50">
+                <h2 class="text-3xl font-bold mb-8 text-transparent bg-clip-text bg-gradient-to-r from-player1 to-player2">选择游戏模式</h2>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8 max-w-md w-full px-4">
+                    <button class="mode-btn px-6 py-5 bg-gradient-to-r from-purple-500 to-purple-700 rounded-lg text-white font-bold shadow-lg hover:shadow-purple-500/30 hover:scale-105 transition-all duration-300" data-mode="singleplayer">
+                        <i class="fa fa-user-o text-4xl mb-3 block"></i>
+                        单人模式
+                        <p class="text-xs mt-1 opacity-80">一个人独自享受游戏</p>
+                    </button>
+                    <button class="mode-btn px-6 py-5 bg-gradient-to-r from-orange-500 to-orange-700 rounded-lg text-white font-bold shadow-lg hover:shadow-orange-500/30 hover:scale-105 transition-all duration-300" data-mode="multi">
+                        <i class="fa fa-users text-4xl mb-3 block"></i>
+                        双人模式
+                        <p class="text-xs mt-1 opacity-80">与朋友一起对战</p>
+                    </button>
+                </div>
+            </div>
+
+            <!-- 难度选择界面 -->
+            <div id="difficultyScreen" class="absolute inset-0 bg-dark/90 backdrop-blur-sm flex flex-col items-center justify-center z-50 hidden">
+                <h2 class="text-3xl font-bold mb-6 text-transparent bg-clip-text bg-gradient-to-r from-player1 to-player2">选择难度</h2>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8 max-w-md w-full px-4">
+                    <button class="difficulty-btn px-6 py-4 bg-gradient-to-r from-blue-500 to-blue-700 rounded-lg text-white font-bold shadow-lg hover:shadow-blue-500/30 hover:scale-105 transition-all duration-300" data-difficulty="easy">
+                        <i class="fa fa-smile-o text-3xl mb-2 block"></i>
+                        简单
+                        <p class="text-xs mt-1 opacity-80">速度较慢，食物较少</p>
+                    </button>
+                    <button class="difficulty-btn px-6 py-4 bg-gradient-to-r from-green-500 to-green-700 rounded-lg text-white font-bold shadow-lg hover:shadow-green-500/30 hover:scale-105 transition-all duration-300" data-difficulty="medium">
+                        <i class="fa fa-meh-o text-3xl mb-2 block"></i>
+                        标准
+                        <p class="text-xs mt-1 opacity-80">默认速度和食物数量</p>
+                    </button>
+                    <button class="difficulty-btn px-6 py-4 bg-gradient-to-r from-red-500 to-red-700 rounded-lg text-white font-bold shadow-lg hover:shadow-red-500/30 hover:scale-105 transition-all duration-300" data-difficulty="hard">
+                        <i class="fa fa-frown-o text-3xl mb-2 block"></i>
+                        困难
+                        <p class="text-xs mt-1 opacity-80">速度较快，食物较多</p>
+                    </button>
+                </div>
+                <button id="startButton" class="px-8 py-3 bg-gradient-to-r from-player1 to-player2 rounded-full text-white font-bold shadow-lg hover:shadow-primary/30 hover:scale-105 transition-all duration-300 hidden">
+                    <i class="fa fa-play mr-2"></i>开始游戏
+                </button>
+            </div>
+            
+            <!-- 游戏结束/胜利界面 -->
+            <div id="winScreen" class="absolute inset-0 bg-dark/80 backdrop-blur-sm flex flex-col items-center justify-center hidden">
+                <h2 class="text-4xl font-bold mb-2 text-transparent bg-clip-text bg-gradient-to-r from-yellow-400 to-red-500">恭喜获胜!</h2>
+                <p id="winnerName" class="text-3xl font-bold mb-6 text-white"></p>
+                <p class="text-xl mb-8">最终比分: <span id="finalScore" class="font-bold"></span></p>
+                <button id="restartButton" class="px-8 py-3 bg-gradient-to-r from-player1 to-player2 rounded-full text-white font-bold shadow-lg hover:shadow-primary/30 hover:scale-105 transition-all duration-300">
+                    <i class="fa fa-refresh mr-2"></i>再来一局
+                </button>
+            </div>
+        </div>
+        
+        <footer class="py-2 px-6 text-center text-white/60 text-sm bg-dark/80 backdrop-blur-sm border-t border-white/10">
+            <p>吃到食物得分，撞到墙壁、自己或对方身体则失败 | 按空格或Enter也可开始/重新开始游戏</p>
+        </footer>
+    </div>
+
+    <!-- 音频元素 -->
+    <audio id="bgMusic" loop>
+        <source src="https://www.soundhelix.com/examples/mp3/SoundHelix-Song-2.mp3" type="audio/mpeg">
+    </audio>
+    <audio id="winMusic">
+        <source src="https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3" type="audio/mpeg">
+    </audio>
+
+    <script src="game.js"></script>
+</body>
+</html>
